@@ -51,7 +51,8 @@ panelview <- function(data, # a data frame (long-form)
                       display.all = NULL,
                       by.cohort = FALSE,
                       collapse.history = NULL,
-                      report.missing = FALSE
+                        report.missing = FALSE,
+                      fe = NULL
                     ) {
         
     ## ------------------------- ##
@@ -106,10 +107,15 @@ panelview <- function(data, # a data frame (long-form)
     
 
     ## normalize type argument (supports partial matching and backward-compatible aliases)
-    type <- match.arg(type, c("treat", "missing", "miss", "outcome", "raw", "bivariate", "bivar"))
+    type <- match.arg(type, c("treat", "missing", "miss", "outcome", "raw", "bivariate", "bivar", "network"))
     if (type == "miss")  type <- "missing"
     if (type == "bivar") type <- "bivariate"
     if (type == "raw")   type <- "outcome"
+
+    ## network type does not require formula/Y/D
+    if (type == "network") {
+        ignore.treat <- TRUE
+    }
 
     ## remove missing values
     if (is.logical(leave.gap) == FALSE & !leave.gap%in%c(0, 1)) {
@@ -200,15 +206,18 @@ panelview <- function(data, # a data frame (long-form)
         stop("option \"collapse.history = TRUE\" should not be combined with \"type = \'outcome\'\"")
     }
 
-            
-    if (!is.null(formula)) { # with formula
+    if (type == "network") {
+        ## Network type does not require formula, Y, D, or X
+        varnames <- character(0)
+        Y <- D <- X <- NULL
+    } else if (!is.null(formula)) { # with formula
 
         if (formula[[1]] != "~") { # no "Y/D/X = var" or "var1 ~ var2"
             stop("need to specify \"Y\"/\"D\"/\"X\" or \"formula\"")
         }
 
         varnames <- all.vars(formula)
-    
+
         Y <- formula[[2]] # left hand side of the formula
 
         if (is.numeric(Y) == FALSE) { # Y is a variable
@@ -230,7 +239,7 @@ panelview <- function(data, # a data frame (long-form)
                 } else {
                     D <- NULL
                     X <- varnames[2]
-                }   
+                }
             } else { # length(varnames) > 2
                 if (ignore.treat == 0) {
                     D <- varnames[2]
@@ -262,7 +271,7 @@ panelview <- function(data, # a data frame (long-form)
                     X <- varnames[2]
                 } else { # 1 ~ X
                     stop("formula form not allowed")
-                }   
+                }
             } else { # length(varnames) > 2
                 if (ignore.treat == 0) {
                     D <- varnames[1]
@@ -272,7 +281,7 @@ panelview <- function(data, # a data frame (long-form)
                 }
             }
         }
-    
+
     } else { # no formula
         varnames <- c(Y, D, X)
         if (is.null(D)==TRUE & is.null(X)==TRUE) { # Y="Y", set type = "miss" as default
@@ -282,10 +291,10 @@ panelview <- function(data, # a data frame (long-form)
             }
         }
     }
-    
+
 
     ## check Incorrect variable names
-    for (i in 1:length(varnames)) {
+    for (i in seq_along(varnames)) {
         if(!varnames[i] %in% colnames(data)) {
             stop(paste("Variable \"", varnames[i],"\" is not in the dataset.", sep = ""))
         }
@@ -301,8 +310,8 @@ panelview <- function(data, # a data frame (long-form)
     index.time <- index[2]
 
 
-    ## exclude other covariates 
-    data <- data[,c(index, Y, D, X)] 
+    ## exclude other covariates
+    data <- data[,c(index, Y, D, X, fe)]
 
     varV <- nv <- NULL
     if (report.missing == TRUE) {
@@ -350,11 +359,14 @@ panelview <- function(data, # a data frame (long-form)
     data <- data[order(data[,index.id], data[,index.time]), ]
 
 
+    ## network type skips time gap validation (may have only 1 time period)
+    if (type != "network") {
+
     minmintime <- as.numeric(min(data[, 2], na.rm = TRUE))
     maxmaxtime <- as.numeric(max(data[, 2], na.rm = TRUE))
     timegap <- (maxmaxtime - minmintime)/(length(unique(data[,index.time]))-1)
-    inttimegap <- as.integer(timegap)    
-    
+    inttimegap <- as.integer(timegap)
+
     data_1 <- transform(data, differencetime = ave(as.numeric(data[, 2]), data[, 1], FUN = function(x) c(NA, diff(x))))
     mintimegap <- min(data_1$differencetime, na.rm = TRUE)
     maxtimegap <- max(data_1$differencetime, na.rm = TRUE)
@@ -380,18 +392,18 @@ panelview <- function(data, # a data frame (long-form)
             #common difference: mintimegap:
             if (mintimegap != maxtimegap & mintimegap != 1 & divide_differencetime == as.integer(divide_differencetime)) {
                 #1. Create all combinations of `id` and `year`
-                g <- with(data, expand.grid(g.id = unique(data[,index[1]]), 
-                        g.time = seq(from = minmintime, to = maxmaxtime, by = mintimegap))) 
+                g <- with(data, expand.grid(g.id = unique(data[,index[1]]),
+                        g.time = seq(from = minmintime, to = maxmaxtime, by = mintimegap)))
                 colnames(g)[1] <- colnames(data[1])
                 colnames(g)[2] <- colnames(data[2])
                 #2. Merge `g` with `data`
                 data2 <- merge(g, data, all.x = TRUE)
                 data <- data2
                 }
-        else { #commmon difference = 1 
+        else { #commmon difference = 1
                 #1. Create all combinations of `id` and `year`
-                g <- with(data, expand.grid(g.id = unique(data[,index[1]]), 
-                        g.time = seq(from = minmintime, to = maxmaxtime))) 
+                g <- with(data, expand.grid(g.id = unique(data[,index[1]]),
+                        g.time = seq(from = minmintime, to = maxmaxtime)))
                 colnames(g)[1] <- colnames(data[1])
                 colnames(g)[2] <- colnames(data[2])
                 #2. Merge `g` with `data`
@@ -401,6 +413,8 @@ panelview <- function(data, # a data frame (long-form)
         }
         data <- data[1:(length(data)-1)] #drop the differencetime column
     }
+
+    } ## end type != "network" guard
 
 
 
@@ -1151,7 +1165,9 @@ else if (leave.gap == 1) {
     ## Dispatch to plot functions
     ###########################
     s <- as.list(environment())
-    if (type == "outcome") {
+    if (type == "network") {
+        .pv_plot_network(s)
+    } else if (type == "outcome") {
         .pv_plot_outcome(s)
     } else if (type == "treat") {
         .pv_plot_treat(s)

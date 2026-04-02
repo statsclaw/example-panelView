@@ -29,13 +29,16 @@ CRAN](https://cranlogs.r-pkg.org/badges/grand-total/panelView)](https://www.data
 
 ## Description
 
-**panelView** visualizes panel data. It has three main functionalities:
+**panelView** visualizes panel data. It has four main functionalities:
 
 1.  it plots treatment status and missing values in a panel dataset;
 2.  it plots the temporal dynamics of an outcome variable (or any
     variable) in a panel dataset;
 3.  it visualizes bivariate relationships of two variables by unit or in
-    aggregate.
+    aggregate;
+4.  **NEW:** it visualizes the network structure of panel data as a
+    bipartite graph, identifying singletons and connected components
+    (inspired by [Correia 2016](https://scorreia.com/research/hdfe.pdf)).
 
 ### Example Output
 
@@ -44,6 +47,44 @@ CRAN](https://cranlogs.r-pkg.org/badges/grand-total/panelView)](https://www.data
 | ![Treatment](figures/panelview-treat.png) | ![Outcome](figures/panelview-outcome.png) |
 
 *U.S. voter registration policies (turnout data). Left: treatment adoption pattern across states. Right: turnout dynamics over time.*
+
+### Network Visualization (NEW)
+
+Visualize the bipartite graph structure of your panel's observation matrix. Units and time periods become differently shaped nodes (filled circles vs hollow squares); edges represent observations. Light blue hulls wrap connected components. Singletons (degree-1 nodes) appear as smaller peripheral nodes — these cannot contribute to fixed-effects identification ([Correia 2016](https://scorreia.com/research/hdfe.pdf), Section 3.4).
+
+<table>
+<tr>
+<td align="center" width="33%"><b>CEO-Firm Network</b><br><img src="examples/figures/01-correia-ceo-firm.png" width="100%"></td>
+<td align="center" width="33%"><b>Singletons & Components</b><br><img src="examples/figures/02-unbalanced-singletons.png" width="100%"></td>
+<td align="center" width="33%"><b>Sparse Panel</b><br><img src="examples/figures/03-sparse-singletons.png" width="100%"></td>
+</tr>
+<tr>
+<td align="center" width="33%"><b>k-partite (3-way FE)</b><br><img src="examples/figures/04-kpartite-3way.png" width="100%"></td>
+<td align="center" width="33%"><b>Balanced Panel</b><br><img src="examples/figures/05-turnout-balanced.png" width="100%"></td>
+<td align="center" width="33%"><b>Large Panel</b><br><img src="examples/figures/06-capacity-large.png" width="100%"></td>
+</tr>
+</table>
+
+``` r
+library(panelView)
+
+# Basic bipartite network (unit × time)
+panelview(turnout ~ policy_edr, data = turnout,
+          index = c("abb", "year"), type = "network")
+
+# k-partite (unit × time × region)
+panelview(data = mydata, index = c("unit", "time"),
+          fe = "region", type = "network")
+
+# Returns igraph object, singletons, and component info
+result <- panelview(data = mydata, index = c("unit", "time"),
+                    type = "network")
+result$singletons   # data.frame of degree-1 nodes
+result$components   # connected component sizes
+result$graph        # igraph object for further analysis
+```
+
+Requires `igraph` (in Suggests — install with `install.packages("igraph")`).
 
 ## Installation
 

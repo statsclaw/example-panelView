@@ -13,10 +13,10 @@ Description: Visualizes panel data. It has three main functionalities: (1) it pl
 URL: https://yiqingxu.org/packages/panelview/, https://github.com/xuyiqing/panelView
 BugReports: https://github.com/xuyiqing/panelView/issues
 License: MIT + file LICENSE
-Imports: ggplot2 (>= 3.4.0), gridExtra, grid, dplyr (>= 1.0.0)
+Imports: ggplot2 (>= 3.4.0), gridExtra, grid, dplyr (>= 1.0.0), rlang
 Depends: R (>= 2.10)
 Encoding: UTF-8
-Suggests: testthat (>= 3.0.0)
+Suggests: testthat (>= 3.0.0), igraph
 RoxygenNote: 7.3.2
 LazyData: true
 Config/testthat/edition: 3

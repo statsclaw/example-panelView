@@ -6,7 +6,7 @@
             X = NULL, index,
             ignore.treat = FALSE, type = "treat",
             outcome.type = "continuous",
-            treat.type = NULL, by.group = FALSE, by.group.side = FALSE, 
+            treat.type = NULL, by.group = FALSE, by.group.side = FALSE,
             by.timing = FALSE, theme.bw = TRUE,
             xlim = NULL, ylim = NULL,
             xlab = NULL, ylab = NULL,
@@ -20,7 +20,8 @@
             cex.lab = 12, cex.legend = 12, background = NULL,
             style = NULL, by.unit = FALSE, lwd = 0.2, leave.gap = FALSE,
             display.all = NULL, by.cohort = FALSE,
-            collapse.history = NULL, report.missing = FALSE)
+            collapse.history = NULL, report.missing = FALSE,
+            fe = NULL)
 }
 \arguments{
   \item{data}{a data frame. The panel does not have to be balanced.}
@@ -30,7 +31,7 @@
   \item{X}{variable name of the time-varying covariates. Ignored if \code{formula} is provided.}
   \item{index}{a two-element string vector specifying the unit (group) and time indicators. Must be of length 2.}
   \item{ignore.treat}{a logical flag indicating whether there is a treatment variable. Default value is \code{ignore.treat = FALSE}.}
-  \item{type}{a string that specifies the type of the plot. Must be either \code{"treat"} (default), which plots the treatment status of each unit at each time point, \code{"missing"}, which plots the missing-data, \code{"outcome"}, which plots the raw outcome data, or \code{"bivariate"}, which plots time series of outcome and treatment in one graph.}
+  \item{type}{a string that specifies the type of the plot. Must be either \code{"treat"} (default), which plots the treatment status of each unit at each time point, \code{"missing"}, which plots the missing-data, \code{"outcome"}, which plots the raw outcome data, \code{"bivariate"}, which plots time series of outcome and treatment in one graph, or \code{"network"}, which plots the bipartite (or k-partite) network structure of the panel's observation matrix. The network plot visualizes units and time periods as nodes in a graph, with edges representing observed unit-time pairs. Singletons (degree-1 nodes) are highlighted and connected components are shown with convex hulls. Requires the \pkg{igraph} package to be installed. When \code{type = "network"}, \code{formula}, \code{Y}, and \code{D} are not required.}
   \item{outcome.type}{a string that specifies the type of outcome variable. Must be either \code{"continuous"}(default) or \code{"discrete"}. For a continuous variable, time series lines for specified units will be plotted, and for discrete response, jitter-ed points at each time period will be plotted.}
   \item{treat.type}{a string that specifies the type of treatment variable. Must be either \code{"continuous"} or \code{"discrete"}. The default is NULL, which means the option will be decided based on the number of unique treatment values: if the number if bigger than 10, it will be set as "continuous"; otherwise, it will be set as "discrete".}
   \item{by.group}{a logic flag indicating whether the data should be plotted in a column in separate groups based on treatment status changes for the outcome plot. }
@@ -70,10 +71,20 @@
   \item{by.cohort}{a logical flag indicating whether to plot the average outcome lines based on unique treatment histories in an "outcome" plot.}
   \item{collapse.history}{a logical flag indicating whether to collapse units by treat history in a "treat"" plot.}
   \item{report.missing}{a logical flag indicating whether to report missingness in the included variables.}
+  \item{fe}{a character vector of additional fixed effect column names in the data for k-partite graph visualization (k > 2). Only used when \code{type = "network"}. Each element must be a column name present in \code{data} and distinct from the two columns specified in \code{index}. Default is \code{NULL}, which produces a standard bipartite graph with unit and time nodes.}
 }
 
 \details{
   panelview visualizes the treatment status, missing values, and raw outcome data of a time-series cross-sectional dataset.
+
+  When \code{type = "network"}, the function visualizes the bipartite graph structure of the panel's observation matrix. Unit and time nodes are connected by edges representing observed data points. Singletons (degree-1 nodes, i.e., units observed in only one period or periods with only one unit) are highlighted in red. Connected components with 3 or more nodes are outlined with dashed convex hulls. When the \code{fe} argument is provided, the graph is extended to a k-partite structure with additional fixed effect dimensions.
+}
+\value{
+  For \code{type = "network"}, the function invisibly returns a list with three components:
+  \item{graph}{an igraph object representing the bipartite or k-partite graph with vertex attributes \code{name}, \code{fe_type}, and \code{component}.}
+  \item{singletons}{a data frame with columns \code{node} (character), \code{fe_type} (character), and \code{degree} (integer, always 1). Zero rows if no singletons exist.}
+  \item{components}{a data frame with columns \code{component} (integer) and \code{size} (integer), one row per connected component.}
+  For other types, the function returns a ggplot object (invisibly).
 }
 
 \author{
