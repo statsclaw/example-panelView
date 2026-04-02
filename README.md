@@ -37,6 +37,14 @@ CRAN](https://cranlogs.r-pkg.org/badges/grand-total/panelView)](https://www.data
 3.  it visualizes bivariate relationships of two variables by unit or in
     aggregate.
 
+### Example Output
+
+| Treatment Status | Outcome Dynamics |
+|:---:|:---:|
+| ![Treatment](figures/panelview-treat.png) | ![Outcome](figures/panelview-outcome.png) |
+
+*U.S. voter registration policies (turnout data). Left: treatment adoption pattern across states. Right: turnout dynamics over time.*
+
 ## Installation
 
 You can install the up-to-date development version from GitHub:
